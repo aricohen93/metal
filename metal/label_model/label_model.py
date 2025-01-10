@@ -416,7 +416,8 @@ class LabelModel(Classifier):
         if class_balance is not None:
             self.p = np.array(class_balance)
         elif Y_dev is not None:
-            class_counts = Counter(Y_dev)
+            class_counts = Counter({c: 0 for c in range(1, self.k + 1)})
+            class_counts.update(Y_dev)
             sorted_counts = np.array([v for k, v in sorted(class_counts.items())])
             self.p = sorted_counts / sum(sorted_counts)
         else:

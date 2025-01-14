@@ -217,6 +217,8 @@ class LabelModel(Classifier):
             for y in range(self.k):
                 idx = i * self.k + y
                 mu_init = torch.clamp(lps[idx] * prec_init[i] / self.p[y], 0, 1)
+                if np.isnan(mu_init):
+                    continue
                 self.mu_init[idx, y] += mu_init
 
         # Initialize randomly based on self.mu_init
@@ -420,6 +422,9 @@ class LabelModel(Classifier):
             class_counts.update(Y_dev)
             sorted_counts = np.array([v for k, v in sorted(class_counts.items())])
             self.p = sorted_counts / sum(sorted_counts)
+
+            if 0 in self.p:
+                self.p = np.clip(self.p, min=0.01, max=0.99)
         else:
             self.p = (1 / self.k) * np.ones(self.k)
         self.P = torch.diag(torch.from_numpy(self.p)).float()

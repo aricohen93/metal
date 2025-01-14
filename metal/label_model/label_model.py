@@ -424,7 +424,7 @@ class LabelModel(Classifier):
             self.p = sorted_counts / sum(sorted_counts)
 
             if 0 in self.p:
-                self.p = np.clip(self.p, min=0.01, max=0.99)
+                self.p = np.clip(self.p, 0.01, 0.99)
         else:
             self.p = (1 / self.k) * np.ones(self.k)
         self.P = torch.diag(torch.from_numpy(self.p)).float()

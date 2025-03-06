@@ -178,7 +178,7 @@ class LabelModel(Classifier):
     def _generate_O_inv(self, L):
         """Form the *inverse* overlaps matrix"""
         self._generate_O(L)
-        self.O_inv = torch.from_numpy(np.linalg.pinv(self.O.numpy(), rcond=1e-07), device=self.device)
+        self.O_inv = torch.from_numpy(np.linalg.pinv(self.O.numpy(), rcond=1e-07))
 
     def _init_params(self):
         """Initialize the learned params
@@ -496,6 +496,7 @@ class LabelModel(Classifier):
             - Then, compute Q = mu P mu.T
             - Finally, estimate mu subject to mu P mu.T = Q and (1b)
         """
+
         self.config = recursive_merge_dicts(self.config, kwargs, misses="ignore")
         train_config = self.config["train_config"]
 
@@ -539,7 +540,7 @@ class LabelModel(Classifier):
             if self.config["verbose"]:
                 print("Estimating Z...")
             self._train_model(train_loader, self.loss_inv_Z)
-            self.Q = torch.from_numpy(self.get_Q(), device=self.device)
+            self.Q = torch.from_numpy(self.get_Q())
 
             # Estimate \mu
             if self.config["verbose"]:

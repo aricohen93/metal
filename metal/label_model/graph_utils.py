@@ -19,20 +19,7 @@ def get_clique_tree(nodes, edges):
 
     # Check if graph is chordal
     if not nx.is_chordal(G1):
-        # Triangulate the graph (minimal chordal completion)
-        triangulated_G = nx.chordal_graph_cliques(G1)
-
-        # Get the edges in the triangulated graph
-        triangulated_edges = set()
-        for clique in triangulated_G:
-            for u in clique:
-                for v in clique:
-                    if u != v:
-                        triangulated_edges.add((u, v))
-
-        G1.add_edges_from(triangulated_edges)
-
-        #raise NotImplementedError("Graph triangulation not implemented.")
+        G1, _ = nx.complete_to_chordal_graph(G1)
 
     # Create maximal clique graph G2
     # Each node is a maximal clique C_i

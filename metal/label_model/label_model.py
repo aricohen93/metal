@@ -220,9 +220,9 @@ class LabelModel(Classifier):
                 if np.isnan(mu_init):
                     continue
                 self.mu_init[idx, y] += mu_init
-
         # Initialize randomly based on self.mu_init
-        self.mu = nn.Parameter(self.mu_init.clone() * np.random.random())
+
+        self.mu = nn.Parameter(self.mu_init.clone()* np.random.random())
 
         if self.inv_form:
             self.Z = nn.Parameter(torch.randn(self.d, self.k, device=self.device))
@@ -397,14 +397,15 @@ class LabelModel(Classifier):
 
         loss_3 = 0
         if abstains == False or abstains_mask is not None and len(self.deps) == 0:
-            for k in range(self.m):
-                if abstains_mask is not None and abstains_mask[k] == 0:
+            for i in range(self.m):
+                if abstains_mask is not None and abstains_mask[i] == 0:
                     continue
 
                 ones = torch.ones((1, self.k), device=self.device)
-                loss_3 += torch.norm(ones - self.mu[k:k+self.k].sum(axis=0))**2
+                loss_3 += torch.norm(ones - self.mu[i*self.k:(i+1)*self.k].sum(axis=0))**2
             # loss_3 = torch.norm(self.mu.reshape((self.m, self.k, self.k)).sum(axis=1) - torch.ones((self.m, self.k)))**2
-
+        
+        # print(self.mu)
         return loss_1 + loss_2 + self.loss_l2(l2=l2) + loss_3*10
 
     def _set_class_balance(self, class_balance, Y_dev):
@@ -506,7 +507,6 @@ class LabelModel(Classifier):
 
         # Note that the LabelModel class implements its own (centered) L2 reg.
         l2 = train_config.get("l2", 0)
-
         self._set_class_balance(class_balance, Y_dev)
         self._set_constants(L_train)
         self._set_dependencies(deps)
@@ -545,7 +545,7 @@ class LabelModel(Classifier):
             # Estimate \mu
             if self.config["verbose"]:
                 print("Estimating \mu...")
-            self._train_model(train_loader, partial(self.loss_inv_mu, abstains=abstains, abstains_mask = abstains_mask, symmetric=symmetric, l2=l2), mu_epochs=20000)
+            self._train_model(train_loader, partial(self.loss_inv_mu, abstains=abstains, abstains_mask = abstains_mask, symmetric=symmetric, l2=l2), mu_epochs=50000)
         else:
             # Compute O and initialize params
             if self.config["verbose"]:

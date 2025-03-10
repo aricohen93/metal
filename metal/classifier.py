@@ -253,6 +253,12 @@ class Classifier(nn.Module):
                 # Perform optimizer step
                 self.optimizer.step()
 
+
+                # Check if `self` has `mu` (since it's defined in LabelModel)
+                if hasattr(self, "mu"):
+                    self.mu.data.clamp_(0, 1)  # Adjust the range as needed
+
+
                 # Calculate metrics, log, and checkpoint as necessary
                 metrics_dict = self._execute_logging(
                     train_loader, valid_loader, loss, batch_size

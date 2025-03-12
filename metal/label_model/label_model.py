@@ -468,6 +468,7 @@ class LabelModel(Classifier):
         log_writer=None,
         abstains=False,
         abstains_mask = None,
+        mu_epochs=50000,
         symmetric=False,
         **kwargs,
     ):
@@ -529,6 +530,7 @@ class LabelModel(Classifier):
         # expects training data to feed to the loss functions.
         dataset = MetalDataset([0], [0])
         train_loader = DataLoader(dataset)
+
         if self.inv_form:
             # Compute O, O^{-1}, and initialize params
             if self.config["verbose"]:
@@ -545,7 +547,7 @@ class LabelModel(Classifier):
             # Estimate \mu
             if self.config["verbose"]:
                 print("Estimating \mu...")
-            self._train_model(train_loader, partial(self.loss_inv_mu, abstains=abstains, abstains_mask = abstains_mask, symmetric=symmetric, l2=l2), mu_epochs=50000)
+            self._train_model(train_loader, partial(self.loss_inv_mu, abstains=abstains, abstains_mask = abstains_mask, symmetric=symmetric, l2=l2), mu_epochs=mu_epochs)
         else:
             # Compute O and initialize params
             if self.config["verbose"]:

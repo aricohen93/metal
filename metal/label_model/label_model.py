@@ -33,8 +33,6 @@ class LabelModel(Classifier):
         else:
             self.device = torch.device("cpu")
 
-        print(f"Using device: {self.device}")
-
     def _check_L(self, L):
         """Run some basic checks on L."""
         # TODO: Take this out?
@@ -424,10 +422,12 @@ class LabelModel(Classifier):
             sorted_counts = np.array([v for k, v in sorted(class_counts.items())])
             self.p = sorted_counts / sum(sorted_counts)
 
-            if 0 in self.p:
-                self.p = np.clip(self.p, 0.01, 0.99)
         else:
             self.p = (1 / self.k) * np.ones(self.k)
+
+        if 0 in self.p:
+            self.p = np.clip(self.p, 0.01, 0.99)
+
         self.P = torch.diag(torch.from_numpy(self.p)).float()
         
         self.P = self.P.to(self.device)

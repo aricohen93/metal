@@ -4,7 +4,7 @@ import networkx as nx
 def get_clique_tree(nodes, edges):
     """Given a set of int nodes i and edges (i,j), returns an nx.Graph object G
     which is a clique tree, where:
-        - G.node[i]['members'] contains the set of original nodes in the ith
+        - G.nodes[i]['members'] contains the set of original nodes in the ith
             maximal clique
         - G[i][j]['members'] contains the set of original nodes in the seperator
             set between maximal cliques i and j
@@ -30,7 +30,7 @@ def get_clique_tree(nodes, edges):
         G2.add_node(i, members=c)
     for i in G2.nodes:
         for j in G2.nodes:
-            S = G2.node[i]["members"].intersection(G2.node[j]["members"])
+            S = G2.nodes[i]["members"].intersection(G2.nodes[j]["members"])
             w = len(S)
             if w > 0:
                 G2.add_edge(i, j, weight=w, members=S)

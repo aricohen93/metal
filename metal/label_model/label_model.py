@@ -152,6 +152,8 @@ class LabelModel(Classifier):
                     self.mask[si:ei, sj:ej] = 0
                     self.mask[sj:ej, si:ei] = 0
 
+        self.mask = self.mask.to(torch.bool)
+
     def _generate_O(self, L):
         """Form the overlaps matrix, which is just all the different observed
         combinations of values of pairs of sources

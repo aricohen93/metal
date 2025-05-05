@@ -260,7 +260,12 @@ class LabelModel(Classifier):
         """
         self._set_constants(L)
 
-        L_aug = self._get_augmented_label_matrix(L)
+        if len(self.deps) > 0:
+            higher_order = True
+        else:
+            higher_order = False
+            
+        L_aug = self._get_augmented_label_matrix(L, higher_order=higher_order)
         mu = np.clip(self.mu.detach().clone().numpy(), 0.01, 0.99)
 
         # Create a "junction tree mask" over the columns of L_aug / mu

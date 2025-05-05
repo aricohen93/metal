@@ -81,7 +81,7 @@ class LabelModel(Classifier):
                     [
                         j
                         for j in self.c_tree.nodes()
-                        if i in self.c_tree.node[j]["members"]
+                        if i in self.c_tree.nodes[j]["members"]
                     ]
                 ),
             }
@@ -95,7 +95,7 @@ class LabelModel(Classifier):
             L_aug = np.copy(L_ind)
             for item in chain(self.c_tree.nodes(), self.c_tree.edges()):
                 if isinstance(item, int):
-                    C = self.c_tree.node[item]
+                    C = self.c_tree.nodes[item]
                     C_type = "node"
                 elif isinstance(item, tuple):
                     C = self.c_tree[item[0]][item[1]]
@@ -151,6 +151,8 @@ class LabelModel(Classifier):
                 if len(ci["max_cliques"].intersection(cj["max_cliques"])) > 0:
                     self.mask[si:ei, sj:ej] = 0
                     self.mask[sj:ej, si:ei] = 0
+
+        self.mask = self.mask.to(torch.bool)
 
     def _generate_O(self, L):
         """Form the overlaps matrix, which is just all the different observed
@@ -267,7 +269,7 @@ class LabelModel(Classifier):
 
             # All maximal cliques are +1
             for i in self.c_tree.nodes():
-                node = self.c_tree.node[i]
+                node = self.c_tree.nodes[i]
                 jtm[node["start_index"] : node["end_index"]] = 1
 
             # All separator sets are -1

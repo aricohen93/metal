@@ -78,14 +78,14 @@ class LabelModelTest(unittest.TestCase):
 
         # Finally, check the clique entries
         # Triangle clique
-        self.assertEqual(len(lm.c_tree.node[1]["members"]), 3)
-        j = lm.c_tree.node[1]["start_index"]
+        self.assertEqual(len(lm.c_tree.nodes[1]["members"]), 3)
+        j = lm.c_tree.nodes[1]["start_index"]
         self.assertEqual(L_aug[0, j], 1)
         self.assertEqual(L_aug[1, j + 3], 1)
         self.assertEqual(L_aug[2, j], 1)
         # Binary clique
-        self.assertEqual(len(lm.c_tree.node[2]["members"]), 2)
-        j = lm.c_tree.node[2]["start_index"]
+        self.assertEqual(len(lm.c_tree.nodes[2]["members"]), 2)
+        j = lm.c_tree.nodes[2]["start_index"]
         self.assertEqual(L_aug[0, j + 1], 1)
         self.assertEqual(L_aug[1, j], 1)
         self.assertEqual(L_aug[2, j], 1)

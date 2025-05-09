@@ -77,7 +77,7 @@ class SingleTaskTreeDepsGenerator(object):
         theta_range=(0, 1.5),
         edge_prob=0.0,
         theta_edge_range=(-1, 1),
-        **kwargs
+        **kwargs,
     ):
         self.n = n
         self.m = m
@@ -102,7 +102,7 @@ class SingleTaskTreeDepsGenerator(object):
         self._get_conditional_probs()
 
         # Correct output type
-        self.L = csr_matrix(self.L, dtype=np.int)
+        self.L = csr_matrix(self.L, dtype="int")
 
     def _generate_edges(self, edge_prob):
         """Generate a random tree-structured dependency graph based on a
@@ -125,7 +125,7 @@ class SingleTaskTreeDepsGenerator(object):
 
         # Choose random weights for the edges
         te_min, te_max = min(theta_edge_range), max(theta_edge_range)
-        for (i, j) in self.E:
+        for i, j in self.E:
             w_ij = (te_max - te_min) * random() + te_min
             self.theta[(i, j)] = w_ij
             self.theta[(j, i)] = w_ij

@@ -97,7 +97,7 @@ class Classifier(nn.Module):
             [Optionally: Y_s: An [n, k] np.ndarray of predicted probabilities]
         """
         Y_s = self._to_numpy(self.predict_proba(X, **kwargs))
-        Y_p = self._break_ties(Y_s, break_ties).astype(np.int)
+        Y_p = self._break_ties(Y_s, break_ties).astype("int")
         if return_probs:
             return Y_p, Y_s
         else:
@@ -167,7 +167,13 @@ class Classifier(nn.Module):
         raise NotImplementedError
 
     def _train_model(
-        self, train_data, loss_fn, mu_epochs = None, valid_data=None, log_writer=None, restore_state={}
+        self,
+        train_data,
+        loss_fn,
+        mu_epochs=None,
+        valid_data=None,
+        log_writer=None,
+        restore_state={},
     ):
         """The internal training routine called by train_model() after setup
 
@@ -253,11 +259,9 @@ class Classifier(nn.Module):
                 # Perform optimizer step
                 self.optimizer.step()
 
-
                 # Check if `self` has `mu` (since it's defined in LabelModel)
                 if hasattr(self, "mu"):
                     self.mu.data.clamp_(0, 1)  # Adjust the range as needed
-
 
                 # Calculate metrics, log, and checkpoint as necessary
                 metrics_dict = self._execute_logging(
@@ -680,8 +684,7 @@ class Classifier(nn.Module):
             Z = torch.from_numpy(Z)
         else:
             msg = (
-                f"Expected list, numpy.ndarray or torch.Tensor, "
-                f"got {type(Z)} instead."
+                f"Expected list, numpy.ndarray or torch.Tensor, got {type(Z)} instead."
             )
             raise Exception(msg)
 

@@ -112,7 +112,7 @@ class LabelModel(Classifier):
 
                 # Else add one column for each possible value
                 else:
-                    L_C = np.ones((self.n, self.k ** nc))
+                    L_C = np.ones((self.n, self.k**nc))
                     for i, vals in enumerate(product(range(self.k), repeat=nc)):
                         for j, v in enumerate(vals):
                             L_C[:, i] *= L_ind[:, members[j] * self.k + v]
@@ -264,7 +264,7 @@ class LabelModel(Classifier):
             higher_order = True
         else:
             higher_order = False
-            
+
         L_aug = self._get_augmented_label_matrix(L, higher_order=higher_order)
         mu = np.clip(self.mu.detach().clone().numpy(), 0.01, 0.99)
 

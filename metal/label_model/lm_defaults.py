@@ -22,6 +22,7 @@ lm_default_config = {
             "optimizer_common": {"lr": 0.01},
             # Optimizer - SGD
             "sgd_config": {"momentum": 0.9},
+            "adam_config": {"betas": (0.9, 0.999)},
         },
         # Scheduler
         "lr_scheduler": None,

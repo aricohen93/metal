@@ -77,11 +77,15 @@ class SingleTaskTreeDepsGenerator(object):
         theta_range=(0, 1.5),
         edge_prob=0.0,
         theta_edge_range=(-1, 1),
+        seed=None,
         **kwargs,
     ):
         self.n = n
         self.m = m
         self.k = k
+        self.seed = seed
+        if seed is not None:
+            np.random.seed(seed)
 
         # Generate correlation structure: edges self.E, parents dict self.parent
         self._generate_edges(edge_prob)

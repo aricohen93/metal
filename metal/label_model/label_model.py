@@ -27,7 +27,7 @@ class LabelModel(Classifier):
     def __init__(self, k=2, **kwargs):
         config = recursive_merge_dicts(lm_default_config, kwargs)
         super().__init__(k, config)
-        
+
         if config["device"] != "cpu":
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         else:
@@ -117,7 +117,7 @@ class LabelModel(Classifier):
 
                 # Else add one column for each possible value
                 else:
-                    L_C = np.ones((self.n, self.k ** nc))
+                    L_C = np.ones((self.n, self.k**nc))
                     for i, vals in enumerate(product(range(self.k), repeat=nc)):
                         for j, v in enumerate(vals):
                             L_C[:, i] *= L_ind[:, members[j] * self.k + v]
@@ -159,7 +159,6 @@ class LabelModel(Classifier):
 
         self.mask = self.mask.to(self.device)
 
-
     def _generate_O(self, L):
         """Form the overlaps matrix, which is just all the different observed
         combinations of values of pairs of sources
@@ -171,7 +170,6 @@ class LabelModel(Classifier):
         self.d = L_aug.shape[1]
         self.O = torch.from_numpy(L_aug.T @ L_aug / self.n).float()
         self.O = self.O.to(self.device)
-
 
     def _generate_O_inv(self, L):
         """Form the *inverse* overlaps matrix"""
@@ -220,7 +218,7 @@ class LabelModel(Classifier):
                 self.mu_init[idx, y] += mu_init
         # Initialize randomly based on self.mu_init
 
-        self.mu = nn.Parameter(self.mu_init.clone()* np.random.random())
+        self.mu = nn.Parameter(self.mu_init.clone() * np.random.random())
 
         if self.inv_form:
             self.Z = nn.Parameter(torch.randn(self.d, self.k, device=self.device))
@@ -250,7 +248,9 @@ class LabelModel(Classifier):
             # ei = self.c_data[(i,)]['end_index']
             # mu_i = mu[si:ei, :]
             mu_i = mu[i * self.k : (i + 1) * self.k, :]
-            c_probs[i * (self.k + 1) + 1 : (i + 1) * (self.k + 1), :] = np.clip(mu_i, 0.01, 0.99)
+            c_probs[i * (self.k + 1) + 1 : (i + 1) * (self.k + 1), :] = np.clip(
+                mu_i, 0.01, 0.99
+            )
 
             # The 0th row (corresponding to abstains) is the difference between
             # the sums of the other rows and one, by law of total prob
@@ -330,19 +330,21 @@ class LabelModel(Classifier):
     def loss_inv_Z(self, *args):
         return torch.norm((self.O_inv + self.Z @ self.Z.t())[self.mask]) ** 2
 
-    def loss_inv_mu(self, *args, abstains=False, abstains_mask = None, symmetric=False, l2=0):
+    def loss_inv_mu(
+        self, *args, abstains=False, abstains_mask=None, symmetric=False, l2=0
+    ):
         if symmetric and self.k == 2:
             for k in self.c_data.keys():
                 if isinstance(k, int):
-                    start = self.c_data[k]['start_index']
-                    end = self.c_data[k]['end_index']
+                    start = self.c_data[k]["start_index"]
+                    end = self.c_data[k]["end_index"]
 
                     # symmetrize each accuracy
                     with torch.no_grad():
-                        mu_acc = 0.5*(self.mu[start, 0] + self.mu[end - 1, 1])
+                        mu_acc = 0.5 * (self.mu[start, 0] + self.mu[end - 1, 1])
                         self.mu[start, 0] = self.mu[end - 1, 1] = mu_acc
-                        
-                        mu_err = 0.5*(self.mu[start, 1] + self.mu[end - 1, 0])
+
+                        mu_err = 0.5 * (self.mu[start, 1] + self.mu[end - 1, 0])
                         self.mu[start, 1] = self.mu[end - 1, 0] = mu_err
 
                     # loss_4 = (self.mu[start, 0] - self.mu[end - 1, 1])**2 + (self.mu[end - 1, 0] - self.mu[start, 1])**2
@@ -353,7 +355,6 @@ class LabelModel(Classifier):
         weight_3 = 10
         if abstains == False or abstains_mask is not None:
             for k in self.c_data.keys():
-
                 if isinstance(k, int) and abstains_mask is not None:
                     if abstains_mask[k] == 0:
                         # when there is an abstain, we model it
@@ -363,32 +364,29 @@ class LabelModel(Classifier):
                     if any(abstains_mask[slice(*k)]) == 0:
                         continue
 
-                start = self.c_data[k]['start_index']
-                end = self.c_data[k]['end_index']
+                start = self.c_data[k]["start_index"]
+                end = self.c_data[k]["end_index"]
                 ones = torch.ones((1, self.k), device=self.device)
-                loss_3 += torch.norm(ones - self.mu[start:end].sum(axis=0))**2
+                loss_3 += torch.norm(ones - self.mu[start:end].sum(axis=0)) ** 2
 
-        return loss_1 + loss_2 + self.loss_l2(l2=l2) + weight_3 * loss_3 
+        return loss_1 + loss_2 + self.loss_l2(l2=l2) + weight_3 * loss_3
 
-    def loss_mu(self, *args, abstains=False, abstains_mask = None, symmetric=False, l2=0):
-
+    def loss_mu(self, *args, abstains=False, abstains_mask=None, symmetric=False, l2=0):
         if symmetric and self.k == 2:
             for k in self.c_data.keys():
                 if isinstance(k, int):
-                    start = self.c_data[k]['start_index']
-                    end = self.c_data[k]['end_index']
+                    start = self.c_data[k]["start_index"]
+                    end = self.c_data[k]["end_index"]
 
                     # symmetrize each accuracy
                     with torch.no_grad():
-                        mu_acc = 0.5*(self.mu[start, 0] + self.mu[end - 1, 1])
+                        mu_acc = 0.5 * (self.mu[start, 0] + self.mu[end - 1, 1])
                         self.mu[start, 0] = self.mu[end - 1, 1] = mu_acc
-                        
-                        mu_err = 0.5*(self.mu[start, 1] + self.mu[end - 1, 0])
+
+                        mu_err = 0.5 * (self.mu[start, 1] + self.mu[end - 1, 0])
                         self.mu[start, 1] = self.mu[end - 1, 0] = mu_err
 
                     # loss_4 = (self.mu[start, 0] - self.mu[end - 1, 1])**2 + (self.mu[end - 1, 0] - self.mu[start, 1])**2
-
-
 
         loss_1 = torch.norm((self.O - self.mu @ self.P @ self.mu.t())[self.mask]) ** 2
         loss_2 = torch.norm(torch.sum(self.mu @ self.P, 1) - torch.diag(self.O)) ** 2
@@ -400,11 +398,16 @@ class LabelModel(Classifier):
                     continue
 
                 ones = torch.ones((1, self.k), device=self.device)
-                loss_3 += torch.norm(ones - self.mu[i*self.k:(i+1)*self.k].sum(axis=0))**2
+                loss_3 += (
+                    torch.norm(
+                        ones - self.mu[i * self.k : (i + 1) * self.k].sum(axis=0)
+                    )
+                    ** 2
+                )
             # loss_3 = torch.norm(self.mu.reshape((self.m, self.k, self.k)).sum(axis=1) - torch.ones((self.m, self.k)))**2
-        
+
         # print(self.mu)
-        return loss_1 + loss_2 + self.loss_l2(l2=l2) + loss_3*10
+        return loss_1 + loss_2 + self.loss_l2(l2=l2) + loss_3 * 10
 
     def _set_class_balance(self, class_balance, Y_dev):
         """Set a prior for the class balance
@@ -429,9 +432,8 @@ class LabelModel(Classifier):
             self.p = np.clip(self.p, 0.01, 0.99)
 
         self.P = torch.diag(torch.from_numpy(self.p)).float()
-        
-        self.P = self.P.to(self.device)
 
+        self.P = self.P.to(self.device)
 
     def _set_constants(self, L):
         self.n, self.m = L.shape
@@ -442,22 +444,20 @@ class LabelModel(Classifier):
         self.deps = deps
         self.c_tree = get_clique_tree(nodes, deps)
 
-
     def _symmetrize_mu(self):
         for k in self.c_data.keys():
             # only symmetrize for singletons
             if isinstance(k, int):
-                start = self.c_data[k]['start_index']
-                end = self.c_data[k]['end_index']
+                start = self.c_data[k]["start_index"]
+                end = self.c_data[k]["end_index"]
 
                 # symmetrize each accuracy
                 with torch.no_grad():
-                    mu_acc = 0.5*(self.mu[start, 0] + self.mu[end - 1, 1])
+                    mu_acc = 0.5 * (self.mu[start, 0] + self.mu[end - 1, 1])
                     self.mu[start, 0] = self.mu[end - 1, 1] = mu_acc
-                    
-                    mu_err = 0.5*(self.mu[start, 1] + self.mu[end - 1, 0])
-                    self.mu[start, 1] = self.mu[end - 1, 0] = mu_err
 
+                    mu_err = 0.5 * (self.mu[start, 1] + self.mu[end - 1, 0])
+                    self.mu[start, 1] = self.mu[end - 1, 0] = mu_err
 
     def train_model(
         self,
@@ -467,7 +467,7 @@ class LabelModel(Classifier):
         class_balance=None,
         log_writer=None,
         abstains=False,
-        abstains_mask = None,
+        abstains_mask=None,
         mu_epochs=50000,
         symmetric=False,
         **kwargs,
@@ -512,7 +512,7 @@ class LabelModel(Classifier):
         self._set_constants(L_train)
         self._set_dependencies(deps)
         self._check_L(L_train)
-        
+
         if (L_train == 0).sum() > 0 and abstains == False:
             print("Detected abstains. Setting abstains flag to True.")
             abstains = True
@@ -547,7 +547,17 @@ class LabelModel(Classifier):
             # Estimate \mu
             if self.config["verbose"]:
                 print("Estimating \mu...")
-            self._train_model(train_loader, partial(self.loss_inv_mu, abstains=abstains, abstains_mask = abstains_mask, symmetric=symmetric, l2=l2), mu_epochs=mu_epochs)
+            self._train_model(
+                train_loader,
+                partial(
+                    self.loss_inv_mu,
+                    abstains=abstains,
+                    abstains_mask=abstains_mask,
+                    symmetric=symmetric,
+                    l2=l2,
+                ),
+                mu_epochs=mu_epochs,
+            )
         else:
             # Compute O and initialize params
             if self.config["verbose"]:
@@ -558,8 +568,16 @@ class LabelModel(Classifier):
             # Estimate \mu
             if self.config["verbose"]:
                 print("Estimating \mu...")
-            self._train_model(train_loader, partial(self.loss_mu, abstains=abstains, abstains_mask = abstains_mask, symmetric=symmetric, l2=l2))
+            self._train_model(
+                train_loader,
+                partial(
+                    self.loss_mu,
+                    abstains=abstains,
+                    abstains_mask=abstains_mask,
+                    symmetric=symmetric,
+                    l2=l2,
+                ),
+            )
 
-            if symmetric and self.k==2:
+            if symmetric and self.k == 2:
                 self._symmetrize_mu()
-

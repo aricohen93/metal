@@ -3,6 +3,7 @@ import sklearn.metrics as skm
 import torch
 
 from metal.utils import arraylike_to_numpy, pred_to_prob
+from collections import Counter
 
 
 def accuracy_score(gold, pred, ignore_in_gold=[], ignore_in_pred=[]):
@@ -131,7 +132,7 @@ def fbeta_score(
     rec = recall_score(gold, pred, pos_label=pos_label)
 
     if pre or rec:
-        fbeta = (1 + beta ** 2) * (pre * rec) / ((beta ** 2 * pre) + rec)
+        fbeta = (1 + beta**2) * (pre * rec) / ((beta**2 * pre) + rec)
     else:
         fbeta = 0
 
@@ -214,3 +215,167 @@ def metric_score(gold, pred, metric, probs=None, **kwargs):
 
     else:
         return METRICS[metric](gold, pred, **kwargs)
+
+
+class ConfusionMatrix(object):
+    """
+    An iteratively built abstention-aware confusion matrix with pretty printing
+
+    Assumed axes are true label on top, predictions on the side.
+    """
+
+    def __init__(self, null_pred=False, null_gold=False):
+        """
+        Args:
+            null_pred: If True, include the row corresponding to null
+                predictions
+            null_gold: If True, include the col corresponding to null gold
+                labels
+
+        """
+        self.counter = Counter()
+        self.mat = None
+        self.null_pred = null_pred
+        self.null_gold = null_gold
+
+    def __repr__(self):
+        if self.mat is None:
+            self.compile()
+        return str(self.mat)
+
+    def add(self, gold, pred):
+        """
+        Args:
+            gold: a np.ndarray of gold labels (ints)
+            pred: a np.ndarray of predictions (ints)
+        """
+        self.counter.update(zip(gold, pred))
+
+    def compile(self, trim=True):
+        k = max([max(tup) for tup in self.counter.keys()]) + 1  # include 0
+
+        mat = np.zeros((k, k), dtype=int)
+        for (y, l), v in self.counter.items():
+            mat[l, y] = v
+
+        if trim and not self.null_pred:
+            mat = mat[1:, :]
+        if trim and not self.null_gold:
+            mat = mat[:, 1:]
+
+        self.mat = mat
+        return mat
+
+    def display(self, normalize=False, indent=0, spacing=2, decimals=3, mark_diag=True):
+        mat = self.compile(trim=False)
+        m, n = mat.shape
+        tab = " " * spacing
+        margin = " " * indent
+
+        # Print headers
+        s = margin + " " * (5 + spacing)
+        for j in range(n):
+            if j == 0 and not self.null_gold:
+                continue
+            s += f" y={j} " + tab
+        print(s)
+
+        # Print data
+        for i in range(m):
+            # Skip null predictions row if necessary
+            if i == 0 and not self.null_pred:
+                continue
+            s = margin + f" l={i} " + tab
+            for j in range(n):
+                # Skip null gold if necessary
+                if j == 0 and not self.null_gold:
+                    continue
+                else:
+                    if i == j and mark_diag and normalize:
+                        s = s[:-1] + "*"
+                    if normalize:
+                        s += f"{mat[i, j] / sum(mat[i, 1:]):>5.3f}" + tab
+                    else:
+                        s += f"{mat[i, j]:^5d}" + tab
+            print(s)
+
+
+def confusion_matrix(
+    gold, pred, null_pred=False, null_gold=False, normalize=False, pretty_print=True
+):
+    """A shortcut method for building a confusion matrix all at once.
+
+    Args:
+        gold: an array-like of gold labels (ints)
+        pred: an array-like of predictions (ints)
+        null_pred: If True, include the row corresponding to null predictions
+        null_gold: If True, include the col corresponding to null gold labels
+        normalize: if True, divide counts by the total number of items
+        pretty_print: if True, pretty-print the matrix before returning
+    """
+    conf = ConfusionMatrix(null_pred=null_pred, null_gold=null_gold)
+    gold = arraylike_to_numpy(gold)
+    pred = arraylike_to_numpy(pred)
+    conf.add(gold, pred)
+    mat = conf.compile()
+
+    if normalize:
+        mat = mat / len(gold)
+
+    if pretty_print:
+        conf.display(normalize=normalize)
+
+    return mat
+
+
+def score_model(
+    model,
+    L,
+    Y,
+    metric="accuracy",
+    break_ties="random",
+    verbose=True,
+    print_confusion_matrix=True,
+    **kwargs,
+):
+    """Scores the predictive performance of the Classifier on all tasks
+
+    Args:
+        data: a Pytorch DataLoader, Dataset, or tuple with Tensors (X,Y):
+            X: The input for the predict method
+            Y: An [n] or [n, 1] torch.Tensor or np.ndarray of target labels
+                in {1,...,k}
+        metric: A metric (string) with which to score performance or a
+            list of such metrics
+        break_ties: A tie-breaking policy (see Classifier._break_ties())
+        verbose: The verbosity for just this score method; it will not
+            update the class config.
+        print_confusion_matrix: Print confusion matrix (overwritten to False if
+            verbose=False)
+
+    Returns:
+        scores: A (float) score or a list of such scores if kwarg metric
+            is a list
+    """
+    Y_p = model.predict(L, break_ties=break_ties, return_probs=False)
+
+    # pdb.set_trace()
+    # Evaluate on the specified metrics
+    return_list = isinstance(metric, list)
+    metric_list = metric if isinstance(metric, list) else [metric]
+    scores = []
+    for metric in metric_list:
+        score = metric_score(Y, Y_p, metric, probs=None, ignore_in_gold=[0], **kwargs)
+        scores.append(score)
+        if verbose:
+            print(f"{metric.capitalize()}: {score:.3f}")
+
+    # Optionally print confusion matrix
+    if print_confusion_matrix and verbose:
+        confusion_matrix(Y, Y_p, pretty_print=True)
+
+    # If a single metric was given as a string (not list), return a float
+    if len(scores) == 1 and not return_list:
+        return scores[0]
+    else:
+        return scores

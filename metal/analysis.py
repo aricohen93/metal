@@ -184,7 +184,15 @@ def lf_summary(L, Y=None, lf_names=None, est_accs=None, **kwargs):
 
     if Y is not None:
         col_names.extend(
-            ["Correct", "Incorrect", "Emp. Acc.", "F1", "Precision", "Recall"]
+            [
+                "Correct",
+                "Incorrect",
+                "Emp. Acc.",
+                "F1",
+                "Precision",
+                "Support Precision",
+                "Recall",
+            ]
         )
         confusions = [
             confusion_matrix(Y, L[:, i], pretty_print=False) for i in range(m)

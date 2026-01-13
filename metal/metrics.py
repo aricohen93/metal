@@ -49,7 +49,9 @@ def coverage_score(gold, pred, ignore_in_gold=[], ignore_in_pred=[]):
     return np.sum(pred != 0) / len(pred)
 
 
-def precision_score(gold, pred, pos_label=1, ignore_in_gold=[], ignore_in_pred=[]):
+def precision_score(
+    gold, pred, pos_label=1, ignore_in_gold=[], ignore_in_pred=[], **kwargs
+):
     """
     Calculate precision for a single class.
     Args:
@@ -79,7 +81,9 @@ def precision_score(gold, pred, pos_label=1, ignore_in_gold=[], ignore_in_pred=[
     return pre
 
 
-def recall_score(gold, pred, pos_label=1, ignore_in_gold=[], ignore_in_pred=[]):
+def recall_score(
+    gold, pred, pos_label=1, ignore_in_gold=[], ignore_in_pred=[], **kwargs
+):
     """
     Calculate recall for a single class.
     Args:
@@ -110,7 +114,7 @@ def recall_score(gold, pred, pos_label=1, ignore_in_gold=[], ignore_in_pred=[]):
 
 
 def fbeta_score(
-    gold, pred, pos_label=1, beta=1.0, ignore_in_gold=[], ignore_in_pred=[]
+    gold, pred, pos_label=1, beta=1.0, ignore_in_gold=[], ignore_in_pred=[], **kwargs
 ):
     """
     Calculate recall for a single class.

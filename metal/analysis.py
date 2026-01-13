@@ -216,10 +216,8 @@ def lf_summary(L, Y=None, lf_names=None, est_accs=None, **kwargs):
             f1 = f1_score(Y, L_dense[:, i], **kwargs)
             precision = precision_score(Y, L_dense[:, i], **kwargs)
             support_precision = np.sum(
-                Y[
-                    (L_dense[:, i] != kwargs.get("abstention_value", 0))
-                    & (Y == kwargs.get("pos_label", 1))
-                ]
+                (L_dense[:, i] != kwargs.get("abstention_value", 0))  # non-abstentions
+                & (Y == kwargs.get("pos_label", 1))  # positive labels
             ).item()
             support_precisions.append(support_precision)
             recall = recall_score(Y, L_dense[:, i], **kwargs)

@@ -5,57 +5,63 @@ import scipy.sparse as sparse
 from pandas import DataFrame, Series
 
 from metal.utils import arraylike_to_numpy
-from metal.metrics import confusion_matrix, f1_score
+from metal.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
 
 ############################################################
 # Label Matrix Diagnostics
 ############################################################
-def _covered_data_points(L):
+def _covered_data_points(L, abstention_value=0):
     """Returns an indicator vector where ith element = 1 if x_i is labeled by at
     least one LF."""
-    return np.ravel(np.where(L.sum(axis=1) != 0, 1, 0))
+    return np.ravel(np.where(L.sum(axis=1) != abstention_value, 1, 0))
 
 
-def _overlapped_data_points(L):
+def _overlapped_data_points(L, abstention_value=0):
     """Returns an indicator vector where ith element = 1 if x_i is labeled by
     more than one LF."""
-    return np.where(np.ravel((L != 0).sum(axis=1)) > 1, 1, 0)
+    return np.where(np.ravel((L != abstention_value).sum(axis=1)) > 1, 1, 0)
 
 
-def _conflicted_data_points(L):
+def _conflicted_data_points(L, abstention_value=0):
     """Returns an indicator vector where ith element = 1 if x_i is labeled by
     at least two LFs that give it disagreeing labels."""
     m = sparse.diags(np.ravel(L.max(axis=1).todense()))
-    return np.ravel(np.max(m @ (L != 0) != L, axis=1).astype(int).todense())
+    return np.ravel(
+        np.max(m @ (L != abstention_value) != L, axis=1).astype(int).todense()
+    )
 
 
-def label_coverage(L):
+def label_coverage(L, abstention_value=0):
     """Returns the **fraction of data points with > 0 (non-zero) labels**
     Args:
         L: an n x m scipy.sparse matrix where L_{i,j} is the label given by the
             jth LF to the ith item
     """
-    return _covered_data_points(L).sum() / L.shape[0]
+    return _covered_data_points(L, abstention_value=abstention_value).sum() / L.shape[0]
 
 
-def label_overlap(L):
+def label_overlap(L, abstention_value=0):
     """Returns the **fraction of data points with > 1 (non-zero) labels**
     Args:
         L: an n x m scipy.sparse matrix where L_{i,j} is the label given by the
             jth LF to the ith item
     """
-    return _overlapped_data_points(L).sum() / L.shape[0]
+    return (
+        _overlapped_data_points(L, abstention_value=abstention_value).sum() / L.shape[0]
+    )
 
 
-def label_conflict(L):
+def label_conflict(L, abstention_value=0):
     """Returns the **fraction of data points with conflicting (disagreeing)
     lablels.**
     Args:
         L: an n x m scipy.sparse matrix where L_{i,j} is the label given by the
             jth LF to the ith item
     """
-    return _conflicted_data_points(L).sum() / L.shape[0]
+    return (
+        _conflicted_data_points(L, abstention_value=abstention_value).sum() / L.shape[0]
+    )
 
 
 def lf_polarities(L):
@@ -69,16 +75,16 @@ def lf_polarities(L):
     return [p[0] if len(p) == 1 else p for p in polarities]
 
 
-def lf_coverages(L):
+def lf_coverages(L, abstention_value=0):
     """Return the **fraction of data points that each LF labels.**
     Args:
         L: an n x m scipy.sparse matrix where L_{i,j} is the label given by the
             jth LF to the ith candidate
     """
-    return np.ravel((L != 0).sum(axis=0)) / L.shape[0]
+    return np.ravel((L != abstention_value).sum(axis=0)) / L.shape[0]
 
 
-def lf_overlaps(L, normalize_by_coverage=False):
+def lf_overlaps(L, normalize_by_coverage=False, abstention_value=0):
     """Return the **fraction of items each LF labels that are also labeled by at
      least one other LF.**
 
@@ -91,13 +97,17 @@ def lf_overlaps(L, normalize_by_coverage=False):
         normalize_by_coverage: Normalize by coverage of the LF, so that it
             returns the percent of LF labels that have overlaps.
     """
-    overlaps = (L != 0).T @ _overlapped_data_points(L) / L.shape[0]
+    overlaps = (
+        (L != abstention_value).T
+        @ _overlapped_data_points(L, abstention_value=abstention_value)
+        / L.shape[0]
+    )
     if normalize_by_coverage:
-        overlaps /= lf_coverages(L)
+        overlaps /= lf_coverages(L, abstention_value=abstention_value)
     return np.nan_to_num(overlaps)
 
 
-def lf_conflicts(L, normalize_by_overlaps=False):
+def lf_conflicts(L, normalize_by_overlaps=False, abstention_value=0):
     """Return the **fraction of items each LF labels that are also given a
     different (non-abstain) label by at least one other LF.**
 
@@ -111,13 +121,17 @@ def lf_conflicts(L, normalize_by_overlaps=False):
         normalize_by_overlaps: Normalize by overlaps of the LF, so that it
             returns the percent of LF overlaps that have conflicts.
     """
-    conflicts = (L != 0).T @ _conflicted_data_points(L) / L.shape[0]
+    conflicts = (
+        (L != abstention_value).T
+        @ _conflicted_data_points(L, abstention_value=abstention_value)
+        / L.shape[0]
+    )
     if normalize_by_overlaps:
-        conflicts /= lf_overlaps(L)
+        conflicts /= lf_overlaps(L, abstention_value=abstention_value)
     return np.nan_to_num(conflicts)
 
 
-def lf_empirical_accuracies(L, Y):
+def lf_empirical_accuracies(L, Y, abstention_value=0):
     """Return the **empirical accuracy** against a set of labels Y (e.g. dev
     set) for each LF.
     Args:
@@ -128,8 +142,10 @@ def lf_empirical_accuracies(L, Y):
     # Assume labeled set is small, work with dense matrices
     Y = arraylike_to_numpy(Y)
     L = L.toarray()
-    X = np.where(L == 0, 0, np.where(L == np.vstack([Y] * L.shape[1]).T, 1, -1))
-    return 0.5 * (X.sum(axis=0) / (L != 0).sum(axis=0) + 1)
+    X = np.where(
+        L == abstention_value, 0, np.where(L == np.vstack([Y] * L.shape[1]).T, 1, -1)
+    )
+    return 0.5 * (X.sum(axis=0) / (L != abstention_value).sum(axis=0) + 1)
 
 
 def lf_summary(L, Y=None, lf_names=None, est_accs=None, **kwargs):
@@ -153,12 +169,23 @@ def lf_summary(L, Y=None, lf_names=None, est_accs=None, **kwargs):
     # Default LF stats
     col_names.extend(["Polarity", "Coverage", "Overlaps", "Conflicts"])
     d["Polarity"] = Series(data=lf_polarities(L), index=lf_names)
-    d["Coverage"] = Series(data=lf_coverages(L), index=lf_names)
-    d["Overlaps"] = Series(data=lf_overlaps(L), index=lf_names)
-    d["Conflicts"] = Series(data=lf_conflicts(L), index=lf_names)
+    d["Coverage"] = Series(
+        data=lf_coverages(L, abstention_value=kwargs.get("abstention_value", 0)),
+        index=lf_names,
+    )
+    d["Overlaps"] = Series(
+        data=lf_overlaps(L, abstention_value=kwargs.get("abstention_value", 0)),
+        index=lf_names,
+    )
+    d["Conflicts"] = Series(
+        data=lf_conflicts(L, abstention_value=kwargs.get("abstention_value", 0)),
+        index=lf_names,
+    )
 
     if Y is not None:
-        col_names.extend(["Correct", "Incorrect", "Emp. Acc.", "F1"])
+        col_names.extend(
+            ["Correct", "Incorrect", "Emp. Acc.", "F1", "Precision", "Recall"]
+        )
         confusions = [
             confusion_matrix(Y, L[:, i], pretty_print=False) for i in range(m)
         ]
@@ -166,18 +193,35 @@ def lf_summary(L, Y=None, lf_names=None, est_accs=None, **kwargs):
         incorrects = [
             conf.sum() - correct for conf, correct in zip(confusions, corrects)
         ]
-        accs = lf_empirical_accuracies(L, Y)
+        accs = lf_empirical_accuracies(
+            L, Y, abstention_value=kwargs.get("abstention_value", 0)
+        )
 
         L_shape = L.shape
         L_dense = L.toarray()
         f1s = []
+        precisions = []
+        support_precisions = []
+        recalls = []
+
         for i in range(L_shape[1]):
             f1 = f1_score(Y, L_dense[:, i], **kwargs)
+            precision = precision_score(Y, L_dense[:, i], **kwargs)
+            support_precision = np.sum(
+                Y.where(L_dense[:, i] != kwargs.get("abstention_value", 0))
+            )
+            support_precisions.append(support_precision)
+            recall = recall_score(Y, L_dense[:, i], **kwargs)
+            precisions.append(precision)
+            recalls.append(recall)
             f1s.append(f1)
         d["Correct"] = Series(data=corrects, index=lf_names)
         d["Incorrect"] = Series(data=incorrects, index=lf_names)
         d["Emp. Acc."] = Series(data=accs, index=lf_names)
         d["F1"] = Series(data=f1s, index=lf_names)
+        d["Precision"] = Series(data=precisions, index=lf_names)
+        d["Support Precision"] = Series(data=support_precisions, index=lf_names)
+        d["Recall"] = Series(data=recalls, index=lf_names)
 
     if est_accs is not None:
         col_names.append("Learned Acc.")
